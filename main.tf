@@ -460,14 +460,32 @@ resource "azurerm_network_interface_security_group_association" "internal_securi
 }
 
 
+resource "azurerm_storage_account" "vm-sa" {
+  count                    = var.boot_diagnostics ? 1 : 0
+  name                     = "bootdiag${lower(random_id.module_id.hex)}"
+  resource_group_name      = data.azurerm_resource_group.bigiprg.name
+  location                 = data.azurerm_resource_group.bigiprg.location
+  account_tier             = element(split("_", var.boot_diagnostics_sa_type), 0)
+  account_replication_type = element(split("_", var.boot_diagnostics_sa_type), 1)
+  tags = {
+    Name   = "${local.instance_prefix}-storage-acct-${count.index}"
+    source = "terraform"
+  }
+}
+
 # Create F5 BIGIP1
 resource "azurerm_virtual_machine" "f5vm01" {
   name                         = "${local.instance_prefix}-f5vm01"
   location                     = data.azurerm_resource_group.bigiprg.location
   resource_group_name          = data.azurerm_resource_group.bigiprg.name
-  primary_network_interface_id = element(azurerm_network_interface.mgmt_nic.*.id, 0)
-  network_interface_ids        = concat(azurerm_network_interface.mgmt_nic.*.id, azurerm_network_interface.external_nic.*.id, azurerm_network_interface.external_public_nic.*.id, azurerm_network_interface.internal_nic.*.id)
+  primary_network_interface_id = element(azurerm_network_interface.external_public_nic.*.id, 0)
+  network_interface_ids        = concat(azurerm_network_interface.external_public_nic.*.id, azurerm_network_interface.mgmt_nic.*.id, azurerm_network_interface.internal_nic.*.id)
   vm_size                      = var.f5_instance_type
+
+  boot_diagnostics {
+    enabled     = var.boot_diagnostics
+    storage_uri = var.boot_diagnostics ? join(",", azurerm_storage_account.vm-sa.*.primary_blob_endpoint) : ""
+  }
 
   # Uncomment this line to delete the OS disk automatically when deleting the VM
   delete_os_disk_on_termination = true
@@ -522,8 +540,9 @@ resource "azurerm_virtual_machine" "f5vm01" {
     identity_ids = [azurerm_user_assigned_identity.user_identity.id]
   }
 
-
   depends_on = [azurerm_network_interface_security_group_association.mgmt_security, azurerm_network_interface_security_group_association.internal_security, azurerm_network_interface_security_group_association.external_security, azurerm_network_interface_security_group_association.external_public_security]
+
+
 }
 
 ## ..:: Run Startup Script ::..

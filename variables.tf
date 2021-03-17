@@ -78,7 +78,7 @@ variable f5_image_name {
 }
 variable f5_version {
   type    = string
-  default = "14.1.206000"
+  default = "15.1.201000"
 }
 
 variable f5_product_name {
@@ -95,6 +95,18 @@ variable enable_accelerated_networking {
   type        = bool
   description = "(Optional) Enable accelerated networking on Network interface"
   default     = false
+}
+
+variable boot_diagnostics {
+  type        = bool
+  description = "(Optional) Enable Boot Dignostics"
+  default     = true
+}
+
+variable "boot_diagnostics_sa_type" {
+  description = "(Optional) Storage account type for boot diagnostics."
+  type        = string
+  default     = "Standard_LRS"
 }
 
 variable enable_ssh_key {
@@ -156,7 +168,8 @@ variable CFE_URL {
 variable INIT_URL {
   description = "URL to download the BIG-IP runtime init"
   type        = string
-  default     = "https://cdn.f5.com/product/cloudsolutions/f5-bigip-runtime-init/v1.2.0/dist/f5-bigip-runtime-init-1.2.0-1.gz.run"
+  default     = "https://github.com/F5Networks/f5-bigip-runtime-init/releases/download/1.2.0/f5-bigip-runtime-init-1.2.0-1.gz.run"
+  #default     = "https://cdn.f5.com/product/cloudsolutions/f5-bigip-runtime-init/develop/develop/dist/f5-bigip-runtime-init-1.2.0-1.gz.run"
 }
 variable libs_dir {
   description = "Directory on the BIG-IP to download the A&O Toolchain into"
